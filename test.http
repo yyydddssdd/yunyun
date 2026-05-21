@@ -1,0 +1,44 @@
+### 1. 注册接口
+POST http://localhost:8080/user/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### 2. 登录接口
+POST http://localhost:8080/user/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### 3. 聊天接口 - 单轮测试
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "sessionId": "test001",
+  "message": "这是服务端课程，你是谁？"
+}
+
+### 4. 多轮测试 - 第1轮
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "sessionId": "test001",
+  "message": "你好，什么是违约责任？"
+}
+
+### 5. 多轮测试 - 第2轮（继续同一sessionId
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "sessionId": "test001",
+  "message": "那买卖合同中通常怎么约定？"
+}

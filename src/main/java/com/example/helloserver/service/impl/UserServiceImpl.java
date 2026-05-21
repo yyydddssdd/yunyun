@@ -1,56 +1,57 @@
 package com.example.helloserver.service.impl;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import cn.hutool.crypto.digest.BCrypt;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.helloserver.common.Result;
-import com.example.helloserver.common.ResultCode;
 import com.example.helloserver.dto.UserDTO;
-import com.example.helloserver.mapper.UserMapper;
 import com.example.helloserver.entity.User;
+import com.example.helloserver.mapper.UserMapper;
 import com.example.helloserver.service.UserService;
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    private static final Map<String, String> userMap = new HashMap<>();
-
-    // 改用构造注入，解决Field injection is not recommended警告
-    private final UserMapper userMapper;
-
     @Autowired
-    public UserServiceImpl(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
+    private UserMapper userMapper;
 
     @Override
     public Result<String> register(UserDTO dto) {
-        if (userMap.containsKey(dto.getUsername())) {
-            return Result.error(ResultCode.USER_HAS_EXISTED);
+        String username = dto.getUsername();
+        String password = dto.getPassword();
+
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername, username);
+        User existUser = userMapper.selectOne(wrapper);
+        if (existUser != null) {
+            return Result.error("用户名已存在");
         }
-        userMap.put(dto.getUsername(), dto.getPassword());
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(BCrypt.hashpw(password));
+        userMapper.insert(user);
+
         return Result.success("注册成功");
     }
 
     @Override
     public Result<String> login(UserDTO dto) {
-        if (!userMap.containsKey(dto.getUsername())) {
-            return Result.error(ResultCode.USER_NOT_EXIST);
-        }
-        if (!userMap.get(dto.getUsername()).equals(dto.getPassword())) {
-            return Result.error(ResultCode.PASSWORD_ERROR);
-        }
-        return Result.success(UUID.randomUUID().toString());
-    }
+        String username = dto.getUsername();
+        String password = dto.getPassword();
 
-    @Override
-    public Result<Page<User>> getUserPage(Integer pageNum, Integer pageSize) {
-        Page<User> page = new Page<>(pageNum, pageSize);
-        // 这里直接传null，代替queryWrapper: null
-        userMapper.selectPage(page, null);
-        return Result.success(page);
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername, username);
+        User user = userMapper.selectOne(wrapper);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+
+        if (!BCrypt.checkpw(password, user.getPassword())) {
+            return Result.error("密码错误");
+        }
+
+        return Result.success("登录成功");
     }
 }
